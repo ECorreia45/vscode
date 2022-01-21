@@ -21,6 +21,7 @@ import { KeyCode } from 'vs/base/common/keyCodes';
 import { Disposable, DisposableStore } from 'vs/base/common/lifecycle';
 import * as platform from 'vs/base/common/platform';
 import { isArray, withNullAsUndefined, withUndefinedAsNull } from 'vs/base/common/types';
+import { EDITOR_GROUP_BORDER } from 'vs/workbench/common/theme';
 import { URI } from 'vs/base/common/uri';
 import 'vs/css!./media/settingsEditor2';
 import { localize } from 'vs/nls';
@@ -91,6 +92,7 @@ export class SettingsEditor2 extends EditorPane {
 	private static SETTING_UPDATE_FAST_DEBOUNCE: number = 200;
 	private static SETTING_UPDATE_SLOW_DEBOUNCE: number = 1000;
 	private static CONFIG_SCHEMA_UPDATE_DELAYER = 500;
+	private static TOC_MIN_WIDTH: number = 200;
 
 	private static readonly SUGGESTIONS: string[] = [
 		`@${MODIFIED_SETTING_TAG}`,
@@ -554,6 +556,9 @@ export class SettingsEditor2 extends EditorPane {
 		}));
 
 		const headerControlsContainer = DOM.append(this.headerContainer, $('.settings-header-controls'));
+		const borderColor = this.theme.getColor(EDITOR_GROUP_BORDER)!.toString();
+		headerControlsContainer.style.borderColor = borderColor;
+
 		const targetWidgetContainer = DOM.append(headerControlsContainer, $('.settings-target-container'));
 		this.settingsTargetsWidget = this._register(this.instantiationService.createInstance(SettingsTargetsWidget, targetWidgetContainer, { enableRemoteSettings: true }));
 		this.settingsTargetsWidget.settingsTarget = ConfigurationTarget.USER_LOCAL;
@@ -677,27 +682,36 @@ export class SettingsEditor2 extends EditorPane {
 		this.createSettingsTree(this.settingsTreeContainer);
 
 		this.splitView = new SplitView(this.bodyContainer, {
-			orientation: Orientation.HORIZONTAL
+			orientation: Orientation.HORIZONTAL,
+			proportionalLayout: false
 		});
 		this.splitView.addView({
 			onDidChange: Event.None,
 			element: this.tocTreeContainer,
-			minimumSize: 180,
+			minimumSize: SettingsEditor2.TOC_MIN_WIDTH,
 			maximumSize: Number.POSITIVE_INFINITY,
+			snap: true,
 			layout: (width) => {
 				this.tocTreeContainer.style.width = `${width}px`;
 			}
-		}, Sizing.Distribute);
+		}, 200);
 		this.splitView.addView({
 			onDidChange: Event.None,
 			element: this.settingsTreeContainer,
-			minimumSize: 300,
+			minimumSize: 500,
 			maximumSize: Number.POSITIVE_INFINITY,
 			layout: (width) => {
 				this.settingsTreeContainer.style.width = `${width}px`;
 			}
 		}, Sizing.Distribute);
 		this.splitView.startSnappingEnabled = true;
+		this._register(this.splitView.onDidSashReset(() => {
+			const totalSize = this.splitView.getViewSize(0) + this.splitView.getViewSize(1);
+			this.splitView.resizeView(0, SettingsEditor2.TOC_MIN_WIDTH);
+			this.splitView.resizeView(1, totalSize - SettingsEditor2.TOC_MIN_WIDTH);
+		}));
+		const borderColor = this.theme.getColor(EDITOR_GROUP_BORDER)!;
+		this.splitView.style({ separatorBorder: borderColor });
 	}
 
 	private addCtrlAInterceptor(container: HTMLElement): void {
