@@ -21,7 +21,7 @@ import { KeyCode } from 'vs/base/common/keyCodes';
 import { Disposable, DisposableStore } from 'vs/base/common/lifecycle';
 import * as platform from 'vs/base/common/platform';
 import { isArray, withNullAsUndefined, withUndefinedAsNull } from 'vs/base/common/types';
-import { EDITOR_GROUP_BORDER } from 'vs/workbench/common/theme';
+import { PANEL_BORDER } from 'vs/workbench/common/theme';
 import { URI } from 'vs/base/common/uri';
 import 'vs/css!./media/settingsEditor2';
 import { localize } from 'vs/nls';
@@ -57,6 +57,7 @@ import { IWorkbenchConfigurationService } from 'vs/workbench/services/configurat
 import { ITextResourceConfigurationService } from 'vs/editor/common/services/textResourceConfiguration';
 import { IExtensionService } from 'vs/workbench/services/extensions/common/extensions';
 import { Orientation, Sizing, SplitView } from 'vs/base/browser/ui/splitview/splitview';
+import { Color } from 'vs/base/common/color';
 
 export const enum SettingsFocusContext {
 	Search,
@@ -93,6 +94,8 @@ export class SettingsEditor2 extends EditorPane {
 	private static SETTING_UPDATE_SLOW_DEBOUNCE: number = 1000;
 	private static CONFIG_SCHEMA_UPDATE_DELAYER = 500;
 	private static TOC_MIN_WIDTH: number = 200;
+	private static NARROW_WIDTH: number = 600;
+	private static MEDIUM_WIDTH: number = 1000;
 
 	private static readonly SUGGESTIONS: string[] = [
 		`@${MODIFIED_SETTING_TAG}`,
@@ -403,8 +406,8 @@ export class SettingsEditor2 extends EditorPane {
 		const monacoWidth = innerWidth - 10 - this.countElement.clientWidth - this.controlsElement.clientWidth - 12;
 		this.searchWidget.layout(new DOM.Dimension(monacoWidth, 20));
 
-		this.rootElement.classList.toggle('mid-width', dimension.width < 1000 && dimension.width >= 600);
-		this.rootElement.classList.toggle('narrow-width', dimension.width < 600);
+		this.rootElement.classList.toggle('mid-width', dimension.width < SettingsEditor2.MEDIUM_WIDTH && dimension.width >= SettingsEditor2.NARROW_WIDTH);
+		this.rootElement.classList.toggle('narrow-width', dimension.width < SettingsEditor2.NARROW_WIDTH);
 	}
 
 	override focus(): void {
@@ -556,7 +559,7 @@ export class SettingsEditor2 extends EditorPane {
 		}));
 
 		const headerControlsContainer = DOM.append(this.headerContainer, $('.settings-header-controls'));
-		const borderColor = this.theme.getColor(EDITOR_GROUP_BORDER)!.toString();
+		const borderColor = this.theme.getColor(PANEL_BORDER)!.toString();
 		headerControlsContainer.style.borderColor = borderColor;
 
 		const targetWidgetContainer = DOM.append(headerControlsContainer, $('.settings-target-container'));
@@ -690,7 +693,6 @@ export class SettingsEditor2 extends EditorPane {
 			element: this.tocTreeContainer,
 			minimumSize: SettingsEditor2.TOC_MIN_WIDTH,
 			maximumSize: Number.POSITIVE_INFINITY,
-			snap: true,
 			layout: (width) => {
 				this.tocTreeContainer.style.width = `${width}px`;
 			}
@@ -704,13 +706,12 @@ export class SettingsEditor2 extends EditorPane {
 				this.settingsTreeContainer.style.width = `${width}px`;
 			}
 		}, Sizing.Distribute);
-		this.splitView.startSnappingEnabled = true;
 		this._register(this.splitView.onDidSashReset(() => {
 			const totalSize = this.splitView.getViewSize(0) + this.splitView.getViewSize(1);
 			this.splitView.resizeView(0, SettingsEditor2.TOC_MIN_WIDTH);
 			this.splitView.resizeView(1, totalSize - SettingsEditor2.TOC_MIN_WIDTH);
 		}));
-		const borderColor = this.theme.getColor(EDITOR_GROUP_BORDER)!;
+		const borderColor = this.theme.getColor(PANEL_BORDER)!;
 		this.splitView.style({ separatorBorder: borderColor });
 	}
 
@@ -1449,6 +1450,7 @@ export class SettingsEditor2 extends EditorPane {
 			}
 
 			this.rootElement.classList.remove('no-results');
+			this.splitView.el.style.visibility = 'visible';
 			return;
 		}
 
@@ -1471,6 +1473,7 @@ export class SettingsEditor2 extends EditorPane {
 				this.layout(this.dimension);
 			}
 			this.rootElement.classList.toggle('no-results', count === 0);
+			this.splitView.el.style.visibility = count === 0 ? 'hidden' : 'visible';
 		}
 	}
 
@@ -1508,6 +1511,11 @@ export class SettingsEditor2 extends EditorPane {
 		this.tocTree.layout(tocTreeHeight);
 
 		this.splitView.el.style.height = `${settingsTreeHeight}px`;
+		const firstViewVisible = dimension.width >= SettingsEditor2.NARROW_WIDTH;
+		this.splitView.setViewVisible(0, firstViewVisible);
+		this.splitView.style({
+			separatorBorder: firstViewVisible ? this.theme.getColor(PANEL_BORDER)! : Color.transparent
+		});
 		this.splitView.layout(this.bodyContainer.clientWidth);
 	}
 
