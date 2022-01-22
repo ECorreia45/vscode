@@ -21,7 +21,6 @@ import { KeyCode } from 'vs/base/common/keyCodes';
 import { Disposable, DisposableStore } from 'vs/base/common/lifecycle';
 import * as platform from 'vs/base/common/platform';
 import { isArray, withNullAsUndefined, withUndefinedAsNull } from 'vs/base/common/types';
-import { PANEL_BORDER } from 'vs/workbench/common/theme';
 import { URI } from 'vs/base/common/uri';
 import 'vs/css!./media/settingsEditor2';
 import { localize } from 'vs/nls';
@@ -43,9 +42,9 @@ import { SettingsTarget, SettingsTargetsWidget } from 'vs/workbench/contrib/pref
 import { commonlyUsedData, tocData } from 'vs/workbench/contrib/preferences/browser/settingsLayout';
 import { AbstractSettingRenderer, HeightChangeParams, ISettingLinkClickEvent, ISettingOverrideClickEvent, resolveConfiguredUntrustedSettings, createTocTreeForExtensionSettings, resolveSettingsTree, SettingsTree, SettingTreeRenderers } from 'vs/workbench/contrib/preferences/browser/settingsTree';
 import { ISettingsEditorViewState, parseQuery, SearchResultIdx, SearchResultModel, SettingsTreeElement, SettingsTreeGroupChild, SettingsTreeGroupElement, SettingsTreeModel, SettingsTreeSettingElement } from 'vs/workbench/contrib/preferences/browser/settingsTreeModels';
-import { settingsTextInputBorder } from 'vs/workbench/contrib/preferences/browser/settingsWidgets';
 import { createTOCIterator, TOCTree, TOCTreeModel } from 'vs/workbench/contrib/preferences/browser/tocTree';
 import { CONTEXT_SETTINGS_EDITOR, CONTEXT_SETTINGS_ROW_FOCUS, CONTEXT_SETTINGS_SEARCH_FOCUS, CONTEXT_TOC_ROW_FOCUS, EXTENSION_SETTING_TAG, FEATURE_SETTING_TAG, ID_SETTING_TAG, IPreferencesSearchService, ISearchProvider, MODIFIED_SETTING_TAG, REQUIRE_TRUSTED_WORKSPACE_SETTING_TAG, SETTINGS_EDITOR_COMMAND_CLEAR_SEARCH_RESULTS, WORKSPACE_TRUST_SETTING_TAG } from 'vs/workbench/contrib/preferences/common/preferences';
+import { settingsHeaderBorder, settingsSashBorder, settingsTextInputBorder } from 'vs/workbench/contrib/preferences/common/preferencesColorRegistry';
 import { IEditorGroup, IEditorGroupsService } from 'vs/workbench/services/editor/common/editorGroupsService';
 import { IOpenSettingsOptions, IPreferencesService, ISearchResult, ISettingsEditorModel, ISettingsEditorOptions, SettingMatchType, SettingValueType, validateSettingsEditorOptions } from 'vs/workbench/services/preferences/common/preferences';
 import { SettingsEditor2Input } from 'vs/workbench/services/preferences/common/preferencesEditorInput';
@@ -94,6 +93,7 @@ export class SettingsEditor2 extends EditorPane {
 	private static SETTING_UPDATE_SLOW_DEBOUNCE: number = 1000;
 	private static CONFIG_SCHEMA_UPDATE_DELAYER = 500;
 	private static TOC_MIN_WIDTH: number = 200;
+	private static EDITOR_MIN_WIDTH: number = 600;
 	private static NARROW_WIDTH: number = 600;
 	private static MEDIUM_WIDTH: number = 1000;
 
@@ -559,8 +559,7 @@ export class SettingsEditor2 extends EditorPane {
 		}));
 
 		const headerControlsContainer = DOM.append(this.headerContainer, $('.settings-header-controls'));
-		const borderColor = this.theme.getColor(PANEL_BORDER)!.toString();
-		headerControlsContainer.style.borderColor = borderColor;
+		headerControlsContainer.style.borderColor = this.theme.getColor(settingsHeaderBorder)!.toString();
 
 		const targetWidgetContainer = DOM.append(headerControlsContainer, $('.settings-target-container'));
 		this.settingsTargetsWidget = this._register(this.instantiationService.createInstance(SettingsTargetsWidget, targetWidgetContainer, { enableRemoteSettings: true }));
@@ -700,7 +699,7 @@ export class SettingsEditor2 extends EditorPane {
 		this.splitView.addView({
 			onDidChange: Event.None,
 			element: this.settingsTreeContainer,
-			minimumSize: 500,
+			minimumSize: SettingsEditor2.EDITOR_MIN_WIDTH,
 			maximumSize: Number.POSITIVE_INFINITY,
 			layout: (width) => {
 				this.settingsTreeContainer.style.width = `${width}px`;
@@ -711,7 +710,7 @@ export class SettingsEditor2 extends EditorPane {
 			this.splitView.resizeView(0, SettingsEditor2.TOC_MIN_WIDTH);
 			this.splitView.resizeView(1, totalSize - SettingsEditor2.TOC_MIN_WIDTH);
 		}));
-		const borderColor = this.theme.getColor(PANEL_BORDER)!;
+		const borderColor = this.theme.getColor(settingsSashBorder)!;
 		this.splitView.style({ separatorBorder: borderColor });
 	}
 
@@ -1514,7 +1513,7 @@ export class SettingsEditor2 extends EditorPane {
 		const firstViewVisible = dimension.width >= SettingsEditor2.NARROW_WIDTH;
 		this.splitView.setViewVisible(0, firstViewVisible);
 		this.splitView.style({
-			separatorBorder: firstViewVisible ? this.theme.getColor(PANEL_BORDER)! : Color.transparent
+			separatorBorder: firstViewVisible ? this.theme.getColor(settingsSashBorder)! : Color.transparent
 		});
 		this.splitView.layout(this.bodyContainer.clientWidth);
 	}
